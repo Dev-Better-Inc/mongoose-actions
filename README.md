@@ -44,7 +44,12 @@ async function run() {
   testDoc.description = 'Updated description';
   const user = new mongoose.Types.ObjectId();
   await testDoc.modifiedBy(user).save();
+  
+  // the listActions method returns an array of actions
+  const actions = await testDoc.listActions({limit: 10, skip: 0});
+  console.log(actions);
 }
+
 
 run();
 ```

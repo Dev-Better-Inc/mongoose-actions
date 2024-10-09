@@ -2,6 +2,7 @@ import { connect, disconnect, clearDatabase } from './database';
 import TestModel from './test.model';
 import ActionModel from "../src/action.model";
 import mongoose from "mongoose";
+import Test2Model from "./test2.model";
 
 describe('TestModel', () => {
   beforeAll(async () => {
@@ -14,8 +15,8 @@ describe('TestModel', () => {
       const savedDoc = await testDoc.save();
       expect(savedDoc.name).toBe('Test');
 
-      const actions = await ActionModel.find({ entity_id: testDoc._id });
-
+      // @ts-ignore
+      const actions = await testDoc.listActions();
       expect(actions.length).toBeGreaterThan(0);
       expect(actions[0].type).toBe('creation');
     });
@@ -35,7 +36,8 @@ describe('TestModel', () => {
       const updatedDoc = await testDoc.save();
       expect(updatedDoc.description).toBe('Updated description');
 
-      const actions = await ActionModel.find({ entity_id: testDoc._id });
+      // @ts-ignore
+      const actions = await testDoc.listActions();
 
       expect(actions.length).toBeGreaterThan(0);
 
@@ -53,9 +55,10 @@ describe('TestModel', () => {
       const updatedDoc = await testDoc.save();
       expect(updatedDoc.untracked).toBe('Updated untracked field');
 
-      const actions = await ActionModel.find({ entity_id: testDoc._id });
+      // @ts-ignore
+      const actions = await testDoc.listActions();
       expect(actions.length).toBeGreaterThan(0);
-      expect(actions.some(action => action.field === 'untracked')).toBe(false);
+      expect(actions.some((action: any) => action.field === 'untracked')).toBe(false);
     });
 
     it('should update a document description and set modifiedBy field', async () => {
@@ -69,13 +72,39 @@ describe('TestModel', () => {
       //@ts-ignore
       await testDoc.modifiedBy(user).save();
 
-      const actions = await ActionModel.find({ entity_id: testDoc._id });
+      // @ts-ignore
+      const actions = await testDoc.listActions();
 
       expect(actions.length).toBeGreaterThan(0);
       expect(actions[2].type).toBe('update');
       expect(actions[2].field).toBe('description');
       expect(actions[2].new).toBe('Updated description with modifiedBy');
       expect(actions[2].user.toString()).toBe(user.toString());
+    });
+
+    it('should test the listActions method', async () => {
+      const testDoc = await TestModel.findOne({ name: 'Test' });
+      expect(testDoc).not.toBeNull();
+      if (!testDoc) return;
+
+      // @ts-ignore
+      const actions = await testDoc.listActions();
+      expect(actions.length).toBeGreaterThan(0);
+      expect(actions[0].type).toBeDefined();
+      expect(actions[0].entity_collection).toBe(TestModel.collection.collectionName);
+      expect(actions.every((action: any) => action.entity_collection === TestModel.collection.collectionName)).toBe(true);
+    });
+
+    it('should create a new document by Test2Model', async () => {
+      const testDoc = new Test2Model({ name: 'Test' });
+      const savedDoc = await testDoc.save();
+      expect(savedDoc.name).toBe('Test');
+
+      // @ts-ignore
+      const actions = await testDoc.listActions();
+
+      expect(actions.length).toBeGreaterThan(0);
+      expect(actions[0].entity_collection).toBe(Test2Model.collection.collectionName);
     });
 
     it('should delete a document', async () => {

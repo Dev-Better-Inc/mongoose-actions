@@ -1,5 +1,5 @@
 import mongoose, { Schema, Document as MongooseDocument } from 'mongoose';
-import {intersection, pick, defaults, get} from 'lodash';
+import {intersection, pick, defaults, get, set} from 'lodash';
 import ActionModel from './action.model';
 export interface DocumentWithActions extends MongooseDocument {
     _original?: any;
@@ -10,6 +10,12 @@ export interface DocumentWithActions extends MongooseDocument {
     saveActions(): void;
     modifiedBy(user: any): DocumentWithActions;
 }
+
+interface ListActionsOptions {
+    skip?: number;
+    limit?: number;
+}
+
 function mongooseActionsPlugin(schema: Schema, options: {fields: string[]}) {
     const {fields} = defaults(options, {
         fields: []
@@ -21,6 +27,7 @@ function mongooseActionsPlugin(schema: Schema, options: {fields: string[]}) {
 
         const originalDoc = await this.model().findOne({_id: this._id}, fields);
         const basicActionData = {
+            entity_collection: this.collection.collectionName,
             entity_id: this._id,
             user: this._modifiedBy,
             data: this._modifiedData,
@@ -72,8 +79,20 @@ function mongooseActionsPlugin(schema: Schema, options: {fields: string[]}) {
         next();
     });
 
+    schema.methods.listActions = async function(options: ListActionsOptions): Promise<any[]> {
+        const {skip, limit} = defaults(options, {
+            skip: 0,
+            limit: 10,
+        });
+        const query: any = {
+            entity_id: this._id,
+            entity_collection: this.collection.collectionName
+        };
+
+        return ActionModel.find(query).limit(limit).skip(skip);
+    };
+
     //TODO: add post remove hook
-    //TODO: add the list actions method
 }
 
 export default mongooseActionsPlugin;
