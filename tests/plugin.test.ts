@@ -1,6 +1,5 @@
 import { connect, disconnect, clearDatabase } from './database';
 import TestModel from './test.model';
-import ActionModel from "../src/action.model";
 import mongoose from "mongoose";
 import Test2Model from "./test2.model";
 
@@ -103,7 +102,7 @@ describe('TestModel', () => {
       // @ts-ignore
       const actions = await testDoc.listActions();
 
-      expect(actions.length).toBeGreaterThan(0);
+      expect(actions.length).toBe(1);
       expect(actions[0].entity_collection).toBe(Test2Model.collection.collectionName);
     });
 

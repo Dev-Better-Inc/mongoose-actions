@@ -1,4 +1,10 @@
 import { Schema, model } from 'mongoose';
+import {defaults} from "lodash";
+
+export interface ActionsModelOptions {
+    modelName? : string,
+    collectionName?: string
+}
 
 const actionSchema = new Schema({
     entity_collection: {type: String, index: true},
@@ -15,5 +21,11 @@ const actionSchema = new Schema({
     data: {type: Schema.Types.Map},
 }, { timestamps: true });
 
-const ActionModel = model('Action', actionSchema);
-export default ActionModel;
+export default (options: ActionsModelOptions) => {
+    const {modelName, collectionName} = defaults(options, {
+        modelName: 'MongooseAction',
+        collectionName: 'mongoose_actions',
+    });
+
+    return  model(modelName, actionSchema, collectionName)
+};

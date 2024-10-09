@@ -1,10 +1,16 @@
 {
   "name": "mongoose-actions",
-  "version": "0.0.4",
+  "version": "0.0.8",
   "description": "",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
   "scripts": {
-    "test": "jest"
+    "test": "jest",
+    "build": "tsc"
   },
+  "files": [
+    "dist"
+  ],
   "keywords": [],
   "author": "Vadym Chornokon",
   "license": "ISC",

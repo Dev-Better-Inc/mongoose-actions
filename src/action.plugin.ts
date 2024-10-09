@@ -1,6 +1,7 @@
 import mongoose, { Schema, Document as MongooseDocument } from 'mongoose';
 import {intersection, pick, defaults, get, set} from 'lodash';
-import ActionModel from './action.model';
+import ActionModel, {ActionsModelOptions} from './action.model';
+
 export interface DocumentWithActions extends MongooseDocument {
     _original?: any;
     _modifiedBy?: any;
@@ -16,10 +17,17 @@ interface ListActionsOptions {
     limit?: number;
 }
 
-function mongooseActionsPlugin(schema: Schema, options: {fields: string[]}) {
-    const {fields} = defaults(options, {
-        fields: []
+interface MongooseActionsPluginOptions {
+    fields?: string[];
+    actionModel?: ActionsModelOptions;
+}
+function mongooseActionsPlugin(schema: Schema, options: MongooseActionsPluginOptions): void {
+    const {fields, actionModel} = defaults(options, {
+        fields: [],
+        actionModel: {}
     });
+
+    const actionModelInstance = ActionModel(actionModel);
 
     schema.pre('save', async function (this: DocumentWithActions, next: (err?: any) => void) {
         if(!this._actions)
@@ -64,7 +72,7 @@ function mongooseActionsPlugin(schema: Schema, options: {fields: string[]}) {
 
     schema.methods.saveActions = async function(): Promise<void> {
         // TODO: add another drivers (e.g other api)
-        await ActionModel.insertMany(this._actions);
+        await actionModelInstance.insertMany(this._actions);
     };
 
     // TODO: use other _modified fields
@@ -89,7 +97,7 @@ function mongooseActionsPlugin(schema: Schema, options: {fields: string[]}) {
             entity_collection: this.collection.collectionName
         };
 
-        return ActionModel.find(query).limit(limit).skip(skip);
+        return actionModelInstance.find(query).limit(limit).skip(skip);
     };
 
     //TODO: add post remove hook
