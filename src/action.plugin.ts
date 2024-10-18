@@ -1,5 +1,5 @@
 import mongoose, { Schema, Document as MongooseDocument } from 'mongoose';
-import {intersection, pick, defaults, get, set} from 'lodash';
+import {intersection, keyBy, defaults, get, map, isObject} from 'lodash';
 import ActionModel, {ActionsModelOptions} from './action.model';
 
 export interface DocumentWithActions extends MongooseDocument {
@@ -8,7 +8,7 @@ export interface DocumentWithActions extends MongooseDocument {
     _modifiedData?: any;
     _modifiedMessage?: any;
     _actions: any[];
-    saveActions(): void;
+    saveActions(): Promise<any>;
     modifiedBy(user: any): DocumentWithActions;
 }
 
@@ -18,7 +18,7 @@ interface ListActionsOptions {
 }
 
 interface MongooseActionsPluginOptions {
-    fields?: string[];
+    fields?: any[];
     actionModel?: ActionsModelOptions;
 }
 function mongooseActionsPlugin(schema: Schema, options: MongooseActionsPluginOptions): void {
@@ -27,13 +27,15 @@ function mongooseActionsPlugin(schema: Schema, options: MongooseActionsPluginOpt
         actionModel: {}
     });
 
+    const fieldsFormatted = keyBy(map(fields, item => !isObject(item) ? {field: item} : item), 'field');
+    const fieldsToSave = map(fieldsFormatted, 'field');
     const actionModelInstance = ActionModel(actionModel);
 
     schema.pre('save', async function (this: DocumentWithActions, next: (err?: any) => void) {
         if(!this._actions)
             this._actions = [];
 
-        const originalDoc = await this.model().findOne({_id: this._id}, fields);
+        const originalDoc = await this.model().findOne({_id: this._id}, fieldsToSave);
         const basicActionData = {
             entity_collection: this.collection.collectionName,
             entity_id: this._id,
@@ -51,18 +53,31 @@ function mongooseActionsPlugin(schema: Schema, options: MongooseActionsPluginOpt
             return next();
         }
 
-        const logFields = intersection(this.modifiedPaths(), fields);
+        const logFields = intersection(this.modifiedPaths(), fieldsToSave);
         if(!logFields.length)
             return next();
 
+        function getFieldTypeBySchemaInstance(instance: string): string | null {
+            if(['String', 'Number', 'Date', 'Boolean'].includes(instance))
+                return instance.toLowerCase()
+
+            return null;
+        }
+
         //TODO: Move all fields to one action. (maybe not)
         for (const key of logFields) {
+            let fieldType = null;
+            fieldType = get(fieldsFormatted, `${key}.fieldType`, null);
+            if(!fieldType)
+                fieldType = getFieldTypeBySchemaInstance(get(schema.path(key), 'instance')) ?? key;
+
             const action = {
                 ...basicActionData,
                 field: key,
                 type: 'update',
                 new: get(this, key, null),
                 old: get(originalDoc, key, null),
+                fieldType
             };
             this._actions.push(action);
         }
@@ -70,9 +85,11 @@ function mongooseActionsPlugin(schema: Schema, options: MongooseActionsPluginOpt
         next();
     });
 
-    schema.methods.saveActions = async function(): Promise<void> {
+
+
+    schema.methods.saveActions = async function(): Promise<any> {
         // TODO: add another drivers (e.g other api)
-        await actionModelInstance.insertMany(this._actions);
+        return actionModelInstance.insertMany(this._actions);
     };
 
     // TODO: use other _modified fields
@@ -83,8 +100,8 @@ function mongooseActionsPlugin(schema: Schema, options: MongooseActionsPluginOpt
     };
 
     schema.post('save', function (doc: DocumentWithActions, next: (err?: any) => void) {
-        doc.saveActions();
-        next();
+        doc.saveActions()
+            .finally(next);
     });
 
     schema.methods.listActions = async function(options: ListActionsOptions): Promise<any[]> {

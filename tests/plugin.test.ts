@@ -106,6 +106,61 @@ describe('TestModel', () => {
       expect(actions[0].entity_collection).toBe(Test2Model.collection.collectionName);
     });
 
+    it('should update a tags field', async () => {
+      const testDoc = await TestModel.findOne({ name: 'Test' });
+      expect(testDoc).not.toBeNull();
+      if (!testDoc) return;
+
+      if(!testDoc.tags) testDoc.tags = {
+        details: []
+      };
+      testDoc.tags.details = ['tag1', 'tag2'];
+      const updatedDoc = await testDoc.save();
+      expect(updatedDoc.tags?.details).toEqual(['tag1', 'tag2']);
+
+      // @ts-ignore
+      const actions = await testDoc.listActions();
+      expect(actions.length).toBeGreaterThan(0);
+      // console.log(actions)
+      expect(actions.some((action: any) => action.field === 'tags')).toBe(true);
+    });
+
+    it('should update subdocuments', async () => {
+      const testDoc = await TestModel.findOne({ name: 'Test' });
+      expect(testDoc).not.toBeNull();
+      if (!testDoc) return;
+
+      const pricingData = {"od":{"base":90,"breakdowns":[{"qty":50,"price":100},{"qty":100,"price":120}]},"jit":{"base":10,"breakdowns":[{"qty":15000,"price":9},{"qty":20000,"price":8}]},"retail":{"base":299}};
+
+      testDoc.set('pricing', pricingData);
+      await testDoc.save();
+
+      // @ts-ignore
+      const actions = await testDoc.listActions();
+      expect(actions.length).toBeGreaterThan(0);
+
+      expect(actions.some((action: any) => action.field === 'pricing')).toBe(true);
+
+      const action = actions.find((action: any) => action.field === 'pricing');
+      expect(action.new).toEqual(pricingData);
+    });
+
+    it('should update the created field', async () => {
+    const testDoc = await TestModel.findOne({ name: 'Test' });
+    expect(testDoc).not.toBeNull();
+    if (!testDoc) return;
+
+    testDoc.created = new Date();
+    await testDoc.save();
+
+    // @ts-ignore
+    const actions = await testDoc.listActions();
+    expect(actions.length).toBeGreaterThan(0);
+    expect(actions.some((action: any) => action.field === 'created')).toBe(true);
+
+      // console.log(actions)
+  });
+
     it('should delete a document', async () => {
       const result = await TestModel.deleteOne({ name: 'Test' });
       expect(result.deletedCount).toBe(1);

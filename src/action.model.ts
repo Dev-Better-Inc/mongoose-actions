@@ -10,6 +10,7 @@ const actionSchema = new Schema({
     entity_collection: {type: String, index: true},
     entity_id: {type: Schema.Types.ObjectId, index: true},
     field: {type: String},
+    fieldLabel: {type: String},
     type: {type: String, require: true},
     old: { type: Schema.Types.Mixed },
     new: { type: Schema.Types.Mixed },
@@ -19,6 +20,7 @@ const actionSchema = new Schema({
         default: null
     },
     data: {type: Schema.Types.Map},
+    fieldType: String
 }, { timestamps: true });
 
 export default (options: ActionsModelOptions) => {
