@@ -36,7 +36,7 @@ function mongooseActionsPlugin(schema: Schema, options: MongooseActionsPluginOpt
             this._actions = [];
 
         let originalDoc;
-        if("7.6.2" >= mongoose.version)
+        if(mongoose.version >= "7.6.2")
             originalDoc = await this.model().findById(this._id, fieldsToSave);
         else
             originalDoc = await (this.constructor as mongoose.Model<DocumentWithActions>).findById(this._id, fieldsToSave);
