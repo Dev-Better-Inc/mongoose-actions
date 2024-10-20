@@ -2,6 +2,13 @@ import { connect, disconnect, clearDatabase } from './database';
 import TestModel from './test.model';
 import mongoose from "mongoose";
 import Test2Model from "./test2.model";
+import {DocumentWithActions} from "../src/action.plugin";
+
+async function listActions(doc: DocumentWithActions): Promise<any[]> {
+    const actions = await doc.listActions();
+
+    return actions.actions;
+}
 
 describe('TestModel', () => {
   beforeAll(async () => {
@@ -15,7 +22,7 @@ describe('TestModel', () => {
       expect(savedDoc.name).toBe('Test');
 
       // @ts-ignore
-      const actions = await testDoc.listActions();
+      const actions = await listActions(testDoc);
       expect(actions.length).toBeGreaterThan(0);
       expect(actions[0].type).toBe('creation');
     });
@@ -36,7 +43,7 @@ describe('TestModel', () => {
       expect(updatedDoc.description).toBe('Updated description');
 
       // @ts-ignore
-      const actions = await testDoc.listActions();
+      const actions = await listActions(testDoc);
 
       expect(actions.length).toBeGreaterThan(0);
 
@@ -55,7 +62,7 @@ describe('TestModel', () => {
       expect(updatedDoc.untracked).toBe('Updated untracked field');
 
       // @ts-ignore
-      const actions = await testDoc.listActions();
+      const actions = await listActions(testDoc);
       expect(actions.length).toBeGreaterThan(0);
       expect(actions.some((action: any) => action.field === 'untracked')).toBe(false);
     });
@@ -72,7 +79,7 @@ describe('TestModel', () => {
       await testDoc.modifiedBy(user).save();
 
       // @ts-ignore
-      const actions = await testDoc.listActions();
+      const actions = await listActions(testDoc);
 
       expect(actions.length).toBeGreaterThan(0);
       expect(actions[2].type).toBe('update');
@@ -87,7 +94,7 @@ describe('TestModel', () => {
       if (!testDoc) return;
 
       // @ts-ignore
-      const actions = await testDoc.listActions();
+      const actions = await listActions(testDoc);
       expect(actions.length).toBeGreaterThan(0);
       expect(actions[0].type).toBeDefined();
       expect(actions[0].entity_collection).toBe(TestModel.collection.collectionName);
@@ -100,7 +107,7 @@ describe('TestModel', () => {
       expect(savedDoc.name).toBe('Test');
 
       // @ts-ignore
-      const actions = await testDoc.listActions();
+      const actions = await listActions(testDoc);
 
       expect(actions.length).toBe(1);
       expect(actions[0].entity_collection).toBe(Test2Model.collection.collectionName);
@@ -119,7 +126,7 @@ describe('TestModel', () => {
       expect(updatedDoc.tags?.details).toEqual(['tag1', 'tag2']);
 
       // @ts-ignore
-      const actions = await testDoc.listActions();
+      const actions = await listActions(testDoc);
       expect(actions.length).toBeGreaterThan(0);
       // console.log(actions)
       expect(actions.some((action: any) => action.field === 'tags')).toBe(true);
@@ -136,7 +143,7 @@ describe('TestModel', () => {
       await testDoc.save();
 
       // @ts-ignore
-      const actions = await testDoc.listActions();
+      const actions = await listActions(testDoc);
       expect(actions.length).toBeGreaterThan(0);
 
       expect(actions.some((action: any) => action.field === 'pricing')).toBe(true);
@@ -154,7 +161,7 @@ describe('TestModel', () => {
       await testDoc.save();
 
       // @ts-ignore
-      const actions = await testDoc.listActions();
+      const actions = await listActions(testDoc);
       expect(actions.length).toBeGreaterThan(0);
       expect(actions.some((action: any) => action.field === 'created')).toBe(true);
     });
@@ -171,7 +178,7 @@ describe('TestModel', () => {
       await testDoc.save();
 
       // @ts-ignore
-      const actions = await testDoc.listActions();
+      const actions = await listActions(testDoc);
       expect(actions.length).toBeGreaterThan(0);
 
       expect(actions.some((action: any) => action.field === 'subdocuments')).toBe(true);
@@ -195,11 +202,12 @@ describe('TestModel', () => {
       await testDoc.save();
 
       // @ts-ignore
-      const actions = await testDoc.listActions();
+      const actions = await listActions(testDoc);
       expect(actions.length).toBeGreaterThan(0);
 
       expect(actions.some((action: any) => action.field === 'subdocuments')).toBe(true);
 
+      // @ts-ignore
       const action = actions.findLast((action: any) => action.field === 'subdocuments');
 
       expect(action.oldValue).not.toEqual([]);

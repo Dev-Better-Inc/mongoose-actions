@@ -10,11 +10,19 @@ export interface DocumentWithActions extends MongooseDocument {
     _actions: any[];
     saveActions(): Promise<any>;
     modifiedBy(user: any): DocumentWithActions;
+    listActions(data?: ListActionsOptions): Promise<ListActionsResponse>;
 }
 
 interface ListActionsOptions {
-    skip?: number;
+    offset?: number;
     limit?: number;
+}
+
+interface ListActionsResponse {
+    actions: any[];
+    limit: number;
+    offset: number;
+    total: number;
 }
 
 interface MongooseActionsPluginOptions {
@@ -122,17 +130,26 @@ function mongooseActionsPlugin(schema: Schema, options: MongooseActionsPluginOpt
             .finally(next);
     });
 
-    schema.methods.listActions = async function(options: ListActionsOptions): Promise<any[]> {
-        const {skip, limit} = defaults(options, {
-            skip: 0,
+    schema.methods.listActions = async function(options: ListActionsOptions): Promise<ListActionsResponse> {
+        const {offset, limit} = defaults(options, {
+            offset: 0,
             limit: 10,
         });
-        const query: any = {
+        const queryData: any = {
             entity_id: this._id,
             entity_collection: this.collection.collectionName
         };
+        const query = actionModelInstance.find(queryData);
 
-        return actionModelInstance.find(query).limit(limit).skip(skip);
+        const countQuery = query.model.find().merge(query)
+        const total = await countQuery.countDocuments();
+        const actions = await query
+            .limit(limit)
+            .skip(offset)
+            .sort({created: -1})
+            .exec();
+
+        return {actions, limit, offset, total};
     };
 
     //TODO: add post remove hook
