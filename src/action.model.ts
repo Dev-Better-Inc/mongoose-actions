@@ -12,8 +12,8 @@ const actionSchema = new Schema({
     field: {type: String},
     fieldLabel: {type: String},
     type: {type: String, require: true},
-    old: { type: Schema.Types.Mixed },
-    new: { type: Schema.Types.Mixed },
+    oldValue: { type: Schema.Types.Mixed },
+    newValue: { type: Schema.Types.Mixed },
     message: String,
     user: {
         type: Schema.Types.ObjectId,

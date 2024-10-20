@@ -21,6 +21,12 @@ interface MongooseActionsPluginOptions {
     fields?: any[];
     actionModel?: ActionsModelOptions;
 }
+
+interface ActionValues {
+    oldValue?: any,
+    newValue?: any
+}
+
 function mongooseActionsPlugin(schema: Schema, options: MongooseActionsPluginOptions): void {
     const {fields, actionModel} = defaults(options, {
         fields: [],
@@ -69,19 +75,26 @@ function mongooseActionsPlugin(schema: Schema, options: MongooseActionsPluginOpt
             return null;
         }
 
+        async function defaultValues(oldValue: any,  newValue: any): Promise<ActionValues>{
+
+            return {oldValue, newValue};
+        }
+
         //TODO: Move all fields to one action. (maybe not)
         for (const key of logFields) {
-            let fieldType = null;
-            fieldType = get(fieldsFormatted, `${key}.fieldType`, null);
+            let fieldType = get(fieldsFormatted, `${key}.fieldType`, null);
             if(!fieldType)
                 fieldType = getFieldTypeBySchemaInstance(get(schema.path(key), 'instance')) ?? key;
+
+            let processValues = get(fieldsFormatted, `${key}.values`, defaultValues) as typeof defaultValues;
+
+            const values = await processValues(get(originalDoc, key, null), get(this, key, null)) as ActionValues;
 
             const action = {
                 ...basicActionData,
                 field: key,
                 type: 'update',
-                new: get(this, key, null),
-                old: get(originalDoc, key, null),
+                ...values,
                 fieldType
             };
             this._actions.push(action);

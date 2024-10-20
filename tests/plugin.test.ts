@@ -42,7 +42,7 @@ describe('TestModel', () => {
 
       expect(actions[1].type).toBe('update');
       expect(actions[1].field).toBe('description');
-      expect(actions[1].new).toBe('Updated description');
+      expect(actions[1].newValue).toBe('Updated description');
     });
 
     it('should update a document untracked field', async () => {
@@ -77,7 +77,7 @@ describe('TestModel', () => {
       expect(actions.length).toBeGreaterThan(0);
       expect(actions[2].type).toBe('update');
       expect(actions[2].field).toBe('description');
-      expect(actions[2].new).toBe('Updated description with modifiedBy');
+      expect(actions[2].newValue).toBe('Updated description with modifiedBy');
       expect(actions[2].user.toString()).toBe(user.toString());
     });
 
@@ -142,24 +142,71 @@ describe('TestModel', () => {
       expect(actions.some((action: any) => action.field === 'pricing')).toBe(true);
 
       const action = actions.find((action: any) => action.field === 'pricing');
-      expect(action.new).toEqual(pricingData);
+      expect(action.newValue).toEqual(pricingData);
     });
 
     it('should update the created field', async () => {
-    const testDoc = await TestModel.findOne({ name: 'Test' });
-    expect(testDoc).not.toBeNull();
-    if (!testDoc) return;
+      const testDoc = await TestModel.findOne({ name: 'Test' });
+      expect(testDoc).not.toBeNull();
+      if (!testDoc) return;
 
-    testDoc.created = new Date();
-    await testDoc.save();
+      testDoc.created = new Date();
+      await testDoc.save();
 
-    // @ts-ignore
-    const actions = await testDoc.listActions();
-    expect(actions.length).toBeGreaterThan(0);
-    expect(actions.some((action: any) => action.field === 'created')).toBe(true);
+      // @ts-ignore
+      const actions = await testDoc.listActions();
+      expect(actions.length).toBeGreaterThan(0);
+      expect(actions.some((action: any) => action.field === 'created')).toBe(true);
+    });
 
-      // console.log(actions)
-  });
+    it('should add field and use custom values resolver', async () => {
+      const testDoc = await TestModel.findOne({ name: 'Test' });
+      expect(testDoc).not.toBeNull();
+
+      if (!testDoc) return;
+      const test2Doc = new Test2Model({ name: 'Test2' });
+      await test2Doc.save();
+
+      testDoc.subdocuments.push(test2Doc._id);
+      await testDoc.save();
+
+      // @ts-ignore
+      const actions = await testDoc.listActions();
+      expect(actions.length).toBeGreaterThan(0);
+
+      expect(actions.some((action: any) => action.field === 'subdocuments')).toBe(true);
+
+      const action = actions.find((action: any) => action.field === 'subdocuments');
+
+      expect(action.oldValue).toEqual([]);
+      expect(action.newValue[0]?._id).toEqual(test2Doc._id);
+      expect(action.newValue[0]?.name).toEqual(test2Doc.name);
+    });
+
+    it('should update field and use custom values resolver', async () => {
+      const testDoc = await TestModel.findOne({ name: 'Test' });
+      expect(testDoc).not.toBeNull();
+
+      if (!testDoc) return;
+      const test2Doc = new Test2Model({ name: 'Test2_2' });
+      await test2Doc.save();
+
+      testDoc.subdocuments.push(test2Doc._id);
+      await testDoc.save();
+
+      // @ts-ignore
+      const actions = await testDoc.listActions();
+      expect(actions.length).toBeGreaterThan(0);
+
+      expect(actions.some((action: any) => action.field === 'subdocuments')).toBe(true);
+
+      const action = actions.findLast((action: any) => action.field === 'subdocuments');
+
+      expect(action.oldValue).not.toEqual([]);
+      expect(action.newValue[1]?._id).toEqual(test2Doc._id);
+      expect(action.newValue[1]?.name).toEqual(test2Doc.name);
+    });
+
 
     it('should delete a document', async () => {
       const result = await TestModel.deleteOne({ name: 'Test' });
