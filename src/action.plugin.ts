@@ -35,7 +35,12 @@ function mongooseActionsPlugin(schema: Schema, options: MongooseActionsPluginOpt
         if(!this._actions)
             this._actions = [];
 
-        const originalDoc = await this.model().findOne({_id: this._id}, fieldsToSave);
+        let originalDoc;
+        if("7.6.2" >= mongoose.version)
+            originalDoc = await this.model().findById(this._id, fieldsToSave);
+        else
+            originalDoc = await (this.constructor as mongoose.Model<DocumentWithActions>).findById(this._id, fieldsToSave);
+
         const basicActionData = {
             entity_collection: this.collection.collectionName,
             entity_id: this._id,
