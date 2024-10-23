@@ -16,7 +16,7 @@ const actionSchema = new Schema({
     newValue: { type: Schema.Types.Mixed },
     message: String,
     user: {
-        type: Schema.Types.ObjectId,
+        type: Schema.Types.Mixed,
         default: null
     },
     data: {type: Schema.Types.Map},

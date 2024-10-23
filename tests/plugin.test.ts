@@ -74,7 +74,11 @@ describe('TestModel', () => {
 
       testDoc.description = 'Updated description with modifiedBy';
 
-      const user = new mongoose.Types.ObjectId();
+      const userId = new mongoose.Types.ObjectId();
+      const user = {
+        _id: userId,
+        username: 'user@test.com'
+      };
       //@ts-ignore
       await testDoc.modifiedBy(user).save();
 
@@ -85,7 +89,8 @@ describe('TestModel', () => {
       expect(actions[2].type).toBe('update');
       expect(actions[2].field).toBe('description');
       expect(actions[2].newValue).toBe('Updated description with modifiedBy');
-      expect(actions[2].user.toString()).toBe(user.toString());
+      expect(actions[2].user._id.toString()).toBe(user._id.toString());
+      expect(actions[2].user.username).toBe(user.username);
     });
 
     it('should test the listActions method', async () => {
