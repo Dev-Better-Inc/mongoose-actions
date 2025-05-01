@@ -97,6 +97,8 @@ function mongooseActionsPlugin(schema: Schema, options: MongooseActionsPluginOpt
             let processValues = get(fieldsFormatted, `${key}.values`, defaultValues) as typeof defaultValues;
 
             const values = await processValues(get(originalDoc, key, null), get(this, key, null)) as ActionValues;
+            if (null === values)
+                continue;
 
             const action = {
                 ...basicActionData,
@@ -146,7 +148,7 @@ function mongooseActionsPlugin(schema: Schema, options: MongooseActionsPluginOpt
         const actions = await query
             .limit(limit)
             .skip(offset)
-            .sort({created: -1})
+            .sort({createdAt: -1})
             .exec();
 
         return {actions, limit, offset, total};
