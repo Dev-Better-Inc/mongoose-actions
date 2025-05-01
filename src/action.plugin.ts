@@ -84,8 +84,11 @@ function mongooseActionsPlugin(schema: Schema, options: MongooseActionsPluginOpt
         }
 
         async function defaultValues(oldValue: any,  newValue: any): Promise<ActionValues>{
-
             return {oldValue, newValue};
+        }
+
+        function getActionType(values: ActionValues): string {
+            return !!values?.oldValue ? 'update': 'initial_set';
         }
 
         //TODO: Move all fields to one action. (maybe not)
@@ -103,7 +106,7 @@ function mongooseActionsPlugin(schema: Schema, options: MongooseActionsPluginOpt
             const action = {
                 ...basicActionData,
                 field: key,
-                type: 'update',
+                type: getActionType(values),
                 ...values,
                 fieldType
             };
